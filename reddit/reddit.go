@@ -60,7 +60,7 @@ type Credentials struct {
 // Client manages communication with the Reddit API.
 type Client struct {
 	// HTTP client used to communicate with the Reddit API.
-	client *http.Client
+	Client *http.Client
 
 	BaseURL  *url.URL
 	TokenURL *url.URL
