@@ -1,4 +1,4 @@
-module github.com/ashaller2017/go-reddit/v2
+module github.com/ashaller2017/go-reddit
 
 go 1.15
 
