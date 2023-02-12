@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/time/rate"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -60,7 +60,8 @@ type Credentials struct {
 // Client manages communication with the Reddit API.
 type Client struct {
 	// HTTP client used to communicate with the Reddit API.
-	Client *http.Client
+	Client      *http.Client
+	Ratelimiter *rate.Limiter
 
 	BaseURL  *url.URL
 	TokenURL *url.URL
@@ -127,6 +128,9 @@ func newClient() *Client {
 	client.User = &UserService{client: client}
 	client.Widget = &WidgetService{client: client}
 	client.Wiki = &WikiService{client: client}
+	//need to figure out rate limiter on client per model but lazy for now
+	limiter := rate.NewLimiter(rate.Every(1*time.Minute/60), 60)
+	client.Ratelimiter = limiter
 
 	postAndCommentService := &postAndCommentService{client: client}
 	client.Comment = &CommentService{client: client, postAndCommentService: postAndCommentService}
@@ -388,23 +392,18 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 }
 
 func (c *Client) checkRateLimitBeforeDo(req *http.Request) *RateLimitError {
-	c.rateMu.Lock()
-	rate := c.rate
-	c.rateMu.Unlock()
 
-	if !rate.Reset.IsZero() && rate.Remaining == 0 && time.Now().Before(rate.Reset) {
-		// Create a fake 429 response.
-		resp := &http.Response{
-			Status:     http.StatusText(http.StatusTooManyRequests),
-			StatusCode: http.StatusTooManyRequests,
-			Request:    req,
-			Header:     make(http.Header),
-			Body:       ioutil.NopCloser(strings.NewReader("")),
-		}
+	ctx := context.Background()
+	err := c.Ratelimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
+	if err != nil {
 		return &RateLimitError{
-			Rate:     rate,
+			Message: err.Error(),
+		}
+	}
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return &RateLimitError{
 			Response: resp,
-			Message:  fmt.Sprintf("API rate limit still exceeded until %s, not making remote request.", rate.Reset),
 		}
 	}
 
@@ -452,7 +451,7 @@ func CheckResponse(r *http.Response) error {
 
 	jsonErrorResponse := &JSONErrorResponse{Response: r}
 
-	data, err := ioutil.ReadAll(r.Body)
+	data, err := io.ReadAll(r.Body)
 	if err == nil && len(data) > 0 {
 		json.Unmarshal(data, jsonErrorResponse)
 		if len(jsonErrorResponse.JSON.Errors) > 0 {
@@ -461,14 +460,14 @@ func CheckResponse(r *http.Response) error {
 	}
 
 	// reset response body
-	r.Body = ioutil.NopCloser(bytes.NewBuffer(data))
+	r.Body = io.NopCloser(bytes.NewBuffer(data))
 
 	if c := r.StatusCode; c >= 200 && c <= 299 {
 		return nil
 	}
 
 	errorResponse := &ErrorResponse{Response: r}
-	data, err = ioutil.ReadAll(r.Body)
+	data, err = io.ReadAll(r.Body)
 	if err == nil && len(data) > 0 {
 		err := json.Unmarshal(data, errorResponse)
 		if err != nil {
