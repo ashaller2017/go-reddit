@@ -392,7 +392,6 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 }
 
 func (c *Client) checkRateLimitBeforeDo(req *http.Request) *RateLimitError {
-
 	ctx := context.Background()
 	err := c.Ratelimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
 	if err != nil {
@@ -400,13 +399,6 @@ func (c *Client) checkRateLimitBeforeDo(req *http.Request) *RateLimitError {
 			Message: err.Error(),
 		}
 	}
-	resp, err := c.Client.Do(req)
-	if err != nil {
-		return &RateLimitError{
-			Response: resp,
-		}
-	}
-
 	return nil
 }
 
