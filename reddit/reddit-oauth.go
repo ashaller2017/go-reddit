@@ -51,7 +51,7 @@ func (s *oauthTokenSource) Token() (*oauth2.Token, error) {
 }
 
 func oauthTransport(client *Client) http.RoundTripper {
-	httpClient := &http.Client{Transport: client.client.Transport}
+	httpClient := &http.Client{Transport: client.Client.Transport}
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, httpClient)
 
 	config := &oauth2.Config{
@@ -72,6 +72,6 @@ func oauthTransport(client *Client) http.RoundTripper {
 
 	return &oauth2.Transport{
 		Source: tokenSource,
-		Base:   client.client.Transport,
+		Base:   client.Client.Transport,
 	}
 }

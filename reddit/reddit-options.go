@@ -16,7 +16,7 @@ func WithHTTPClient(httpClient *http.Client) Opt {
 		if httpClient == nil {
 			return errors.New("*http.Client: cannot be nil")
 		}
-		c.client = httpClient
+		c.Client = httpClient
 		return nil
 	}
 }
