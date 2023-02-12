@@ -110,7 +110,7 @@ func newClient() *Client {
 	baseURL, _ := url.Parse(defaultBaseURL)
 	tokenURL, _ := url.Parse(defaultTokenURL)
 
-	client := &Client{client: &http.Client{}, BaseURL: baseURL, TokenURL: tokenURL}
+	client := &Client{Client: &http.Client{}, BaseURL: baseURL, TokenURL: tokenURL}
 
 	client.Account = &AccountService{client: client}
 	client.Collection = &CollectionService{client: client}
@@ -155,16 +155,16 @@ func NewClient(credentials Credentials, opts ...Opt) (*Client, error) {
 
 	userAgentTransport := &userAgentTransport{
 		userAgent: client.UserAgent(),
-		Base:      client.client.Transport,
+		Base:      client.Client.Transport,
 	}
-	client.client.Transport = userAgentTransport
+	client.Client.Transport = userAgentTransport
 
-	if client.client.CheckRedirect == nil {
-		client.client.CheckRedirect = client.redirect
+	if client.Client.CheckRedirect == nil {
+		client.Client.CheckRedirect = client.redirect
 	}
 
 	oauthTransport := oauthTransport(client)
-	client.client.Transport = oauthTransport
+	client.Client.Transport = oauthTransport
 
 	return client, nil
 }
@@ -182,15 +182,15 @@ func NewReadonlyClient(opts ...Opt) (*Client, error) {
 		}
 	}
 
-	if client.client == nil {
-		client.client = &http.Client{}
+	if client.Client == nil {
+		client.Client = &http.Client{}
 	}
 
 	userAgentTransport := &userAgentTransport{
 		userAgent: client.UserAgent(),
-		Base:      client.client.Transport,
+		Base:      client.Client.Transport,
 	}
-	client.client.Transport = userAgentTransport
+	client.Client.Transport = userAgentTransport
 
 	return client, nil
 }
@@ -345,7 +345,7 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 		}, err
 	}
 
-	resp, err := DoRequestWithClient(ctx, c.client, req)
+	resp, err := DoRequestWithClient(ctx, c.Client, req)
 	if err != nil {
 		return nil, err
 	}
