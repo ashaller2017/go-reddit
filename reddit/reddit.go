@@ -128,8 +128,9 @@ func newClient() *Client {
 	client.User = &UserService{client: client}
 	client.Widget = &WidgetService{client: client}
 	client.Wiki = &WikiService{client: client}
-	//need to figure out rate limiter on client per model but lazy for now
-	limiter := rate.NewLimiter(rate.Every(1*time.Minute/60), 60)
+
+	//limiter attached to each instance of client per model
+	limiter := rate.NewLimiter(rate.Every(1*time.Minute/60), 1)
 	client.Ratelimiter = limiter
 
 	postAndCommentService := &postAndCommentService{client: client}
