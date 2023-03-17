@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"golang.org/x/time/rate"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -153,6 +154,7 @@ func NewClient(credentials Credentials, opts ...Opt) (*Client, error) {
 	client.Password = credentials.Password
 
 	for _, opt := range opts {
+		log.Println(opt)
 		if err := opt(client); err != nil {
 			return nil, err
 		}
